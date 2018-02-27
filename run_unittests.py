@@ -526,9 +526,11 @@ class BasePlatformTests(unittest.TestCase):
         self.privatedir = os.path.join(self.builddir, 'meson-private')
         if inprocess:
             try:
-                (returncode, out, _) = run_configure(self.meson_mainfile, self.meson_args + args + extra_args)
+                (returncode, out, err) = run_configure(self.meson_mainfile, self.meson_args + args + extra_args)
                 if returncode != 0:
                     self._print_meson_log()
+                    print(out)
+                    print(err)
                     raise RuntimeError('Configure failed')
             except:
                 self._print_meson_log()
@@ -1784,6 +1786,14 @@ int main(int argc, char **argv) {
                 os.environ.pop('XDG_DATA_HOME', None)
                 self.init(testdir, ['--cross-file=' + name], inprocess=True)
                 self.wipe()
+
+        if 'MESON_EXE' in os.environ:
+            # The test below requires mocking and thus requiring that
+            # the current process is the one to run the Meson steps.
+            # If we are using an external test executable (most commonly
+            # in Debian autopkgtests) then the mocking won't work.
+            # Return gracefully if this is the case.
+            return
 
         with tempfile.TemporaryDirectory() as d:
             dir_ = os.path.join(d, '.local', 'share', 'meson', 'cross')
